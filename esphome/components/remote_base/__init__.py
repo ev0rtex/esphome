@@ -240,6 +240,86 @@ async def build_dumpers(config):
     return dumpers
 
 
+# A-OK
+AOKCommand = ns.enum("AOKCommand")
+AOK_COMMANDS = {
+    "UP": AOKCommand.COMMAND_UP,
+    "DOWN": AOKCommand.COMMAND_DOWN,
+    "STOP": AOKCommand.COMMAND_STOP,
+    "PROGRAM": AOKCommand.COMMAND_PROGRAM,
+}
+AOKChannel = ns.enum("AOKChannel")
+AOK_CHANNELS = {
+    "1": AOKChannel.CHANNEL_1,
+    "2": AOKChannel.CHANNEL_2,
+    "3": AOKChannel.CHANNEL_3,
+    "4": AOKChannel.CHANNEL_4,
+    "5": AOKChannel.CHANNEL_5,
+    "6": AOKChannel.CHANNEL_6,
+    "7": AOKChannel.CHANNEL_7,
+    "8": AOKChannel.CHANNEL_8,
+    "9": AOKChannel.CHANNEL_9,
+    "10": AOKChannel.CHANNEL_10,
+    "11": AOKChannel.CHANNEL_11,
+    "12": AOKChannel.CHANNEL_12,
+    "13": AOKChannel.CHANNEL_13,
+    "14": AOKChannel.CHANNEL_14,
+    "15": AOKChannel.CHANNEL_15,
+    "16": AOKChannel.CHANNEL_16,
+    "-1": AOKChannel.CHANNEL_ALL,
+    "ALL": AOKChannel.CHANNEL_ALL,
+}
+
+(
+    AOKData,
+    AOKBinarySensor,
+    AOKTrigger,
+    AOKAction,
+    AOKDumper,
+) = declare_protocol("AOK")
+AOK_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_DEVICE): cv.hex_uint32_t,
+        cv.Required(CONF_CHANNEL): cv.Any(cv.enum(AOK_CHANNELS, upper=True)),
+        cv.Required(CONF_COMMAND): cv.enum(AOK_COMMANDS, upper=True),
+    }
+)
+
+
+@register_binary_sensor("aok", AOKBinarySensor, AOK_SCHEMA)
+def aok_binary_sensor(var, config):
+    cg.add(
+        var.set_data(
+            cg.StructInitializer(
+                AOKData,
+                ("device", config[CONF_DEVICE]),
+                ("channel", config[CONF_CHANNEL]),
+                ("command", config[CONF_COMMAND]),
+            )
+        )
+    )
+
+
+@register_trigger("aok", AOKTrigger, AOKData)
+def aok_trigger(var, config):
+    pass
+
+
+@register_action("aok", AOKAction, AOK_SCHEMA)
+async def aok_action(var, config, args):
+    template_ = await cg.templatable(config[CONF_DEVICE], args, cg.uint32)
+    cg.add(var.set_device(template_))
+    template_ = await cg.templatable(config[CONF_CHANNEL], args, AOKChannel)
+    cg.add(var.set_channel(template_))
+    template_ = await cg.templatable(config[CONF_COMMAND], args, AOKCommand)
+    cg.add(var.set_command(template_))
+
+
+@register_dumper("aok", AOKDumper)
+def aok_dumper(var, config):
+    pass
+
+
 # CanalSat
 (
     CanalSatData,
